@@ -8,7 +8,7 @@ import abc
 class Product:
     # FIXME: klasa powinna posiadać metodę inicjalizacyjną przyjmującą argumenty wyrażające nazwę produktu (typu str) i jego cenę (typu float) -- w takiej kolejności -- i ustawiającą atrybuty `name` (typu str) oraz `price` (typu float)
     def __init__(self, name: str, price: float):
-        if name.isalpha() or name.isdigit():
+        if not name.isalpha() and not name.isdigit():
             self.name = name
             self.price = price
         else:
@@ -27,22 +27,18 @@ class Product:
 #   (3) możliwość odwołania się do metody `get_entries(self, n_letters)` zwracającą listę produktów spełniających kryterium wyszukiwania
 
 class Server(abc.ABC):
-    @abc.abstractmethod
-    def __init__(self, list_of_products: List[Product] = []):
-        pass
-
-
-class ListServer(Server):
     n_max_returned_entries = 6
-
-    def __init__(self, list_of_products: List[Product] = []):
+    
+    @abc.abstractmethod
+    def __init__(self, list_of_products):
         self.list_of_products = list_of_products
 
-    def search_for(self, n_letters: int = 1):
+    def get_entries(self, n_letters: int = 1):
         found = []
         for each in self.list_of_products:
-            match = re.search(r"[A-Za-z]{n_letters}\d{2,3}", each.name)
-            found += match
+            match = re.search('^[a-zA-Z]{{{n}}}\\d{{2,3}}$'.format(n=n_letters), each)
+            if match:
+                found += [each]
         sorted(found, key=my_key)
         length = len(found)
         if length < 3:
@@ -52,8 +48,19 @@ class ListServer(Server):
         return found
 
 
+class ListServer(Server):
+
+    def __init__(self, list_of_products: List[Product] = []):
+        super().__init__(list_of_products)
+
+
 class MapServer(Server):
-    pass
+    
+    def __init__(self, list_of_products: List[Product] = []):
+        self.map_of_products = {}
+        for prod in list_of_products:
+            self.map_of_products[prod.name] = prod.price
+        super().__init__(self.map_of_products)
 
 
 class TooManyProductsFound(BaseException):
@@ -85,3 +92,11 @@ class Client:
 
     def get_total_price(self, n_letters: Optional[int]) -> Optional[float]:
         raise NotImplementedError()
+
+
+server_types = (ListServer, MapServer)
+
+products = [Product('PP12', 1), Product('PP234', 2), Product('PP235', 1)]
+for server_type in server_types:
+    server = server_type(products)
+    entries = server.get_entries(2)
