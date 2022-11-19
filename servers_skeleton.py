@@ -33,13 +33,23 @@ class Server(abc.ABC):
     def __init__(self, list_of_products):
         self.list_of_products = list_of_products
 
+    @abc.abstractmethod
+    def my_key(self, prod) -> str:
+        pass
+
     def get_entries(self, n_letters: int = 1):
         found = []
-        for each in self.list_of_products:
-            match = re.search('^[a-zA-Z]{{{n}}}\\d{{2,3}}$'.format(n=n_letters), each)
-            if match:
-                found += [each]
-        sorted(found, key=my_key)
+        if isinstance(self.list_of_products, List):
+            for each in self.list_of_products:
+                match = re.search('^[a-zA-Z]{{{n}}}\\d{{2,3}}$'.format(n=n_letters), each.name)
+                if match:
+                    found += [each]
+        elif isinstance(self.list_of_products, dict):
+            for each in list(self.list_of_products.keys()):
+                match = re.search('^[a-zA-Z]{{{n}}}\\d{{2,3}}$'.format(n=n_letters), each)
+                if match:
+                    found += [each]
+        sorted(found, key=self.my_key)
         length = len(found)
         if length < 3:
             raise TooFewProductsFound(length)
@@ -53,6 +63,9 @@ class ListServer(Server):
     def __init__(self, list_of_products: List[Product] = []):
         super().__init__(list_of_products)
 
+    def my_key(self, prod: Product) -> str:
+        return prod.name
+
 
 class MapServer(Server):
     
@@ -61,6 +74,9 @@ class MapServer(Server):
         for prod in list_of_products:
             self.map_of_products[prod.name] = prod.price
         super().__init__(self.map_of_products)
+
+    def my_key(self, prod: dict) -> str:
+        return prod[0]
 
 
 class TooManyProductsFound(BaseException):
@@ -83,9 +99,6 @@ class TooFewProductsFound(BaseException):
         return f'{self.message}: {self.amount}'
 
 
-def my_key(prod: Product) -> str:
-    return prod.name
-
 
 class Client:
     # FIXME: klasa powinna posiadać metodę inicjalizacyjną przyjmującą obiekt reprezentujący serwer
@@ -94,9 +107,9 @@ class Client:
         raise NotImplementedError()
 
 
-server_types = (ListServer, MapServer)
-
-products = [Product('PP12', 1), Product('PP234', 2), Product('PP235', 1)]
-for server_type in server_types:
-    server = server_type(products)
-    entries = server.get_entries(2)
+# server_types = (ListServer, MapServer)
+#
+# products = [Product('PP12', 1), Product('PP234', 2), Product('PP235', 1)]
+# for server_type in server_types:
+#     server = server_type(products)
+#     entries = server.get_entries(2)
