@@ -103,8 +103,17 @@ class TooFewProductsFound(BaseException):
 class Client:
     # FIXME: klasa powinna posiadać metodę inicjalizacyjną przyjmującą obiekt reprezentujący serwer
 
+    def __init__(self, server: Server):
+        self.server = server
+
     def get_total_price(self, n_letters: Optional[int]) -> Optional[float]:
-        raise NotImplementedError()
+        if n_letters is None:
+            return None
+        else:
+            total_price = 0
+            for i in self.server.get_entries(n_letters):
+                total_price += i.price
+            return total_price
 
 
 # server_types = (ListServer, MapServer)
