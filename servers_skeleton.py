@@ -107,13 +107,17 @@ class Client:
         self.server = server
 
     def get_total_price(self, n_letters: Optional[int]) -> Optional[float]:
-        if n_letters is None:
-            return None
-        else:
+        try:
+            if n_letters is None:
+                entries = self.server.get_entries()
+            else:
+                entries = self.server.get_entries(n_letters)
             total_price = 0
-            for i in self.server.get_entries(n_letters):
+            for i in entries:
                 total_price += i.price
             return total_price
+        except TooManyProductsFound:
+            return None
 
 
 # server_types = (ListServer, MapServer)
