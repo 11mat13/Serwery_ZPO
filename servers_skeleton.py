@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import re
-from typing import Optional, List
+from typing import Optional, List, Dict
 import abc
 
 
@@ -9,8 +9,8 @@ class Product:
     # FIXME: klasa powinna posiadać metodę inicjalizacyjną przyjmującą argumenty wyrażające nazwę produktu (typu str) i jego cenę (typu float) -- w takiej kolejności -- i ustawiającą atrybuty `name` (typu str) oraz `price` (typu float)
     def __init__(self, name: str, price: float):
         if not name.isalpha() and not name.isdigit():
-            self.name = name
-            self.price = price
+            self.name: str = name
+            self.price: float = price
         else:
             raise ValueError("Inproper value of name")
 
@@ -33,22 +33,19 @@ class Server(abc.ABC):
     def __init__(self, list_of_products):
         self.list_of_products = list_of_products
 
+    def my_key(self, prod: Product) -> str:
+        return prod.name
+
     @abc.abstractmethod
-    def my_key(self, prod) -> str:
+    def get_list_of_products(self) -> List[Product]:
         pass
 
     def get_entries(self, n_letters: int = 1):
         found = []
-        if isinstance(self.list_of_products, List):
-            for each in self.list_of_products:
-                match = re.search('^[a-zA-Z]{{{n}}}\\d{{2,3}}$'.format(n=n_letters), each.name)
-                if match:
-                    found += [each]
-        elif isinstance(self.list_of_products, dict):
-            for each in list(self.list_of_products.keys()):
-                match = re.search('^[a-zA-Z]{{{n}}}\\d{{2,3}}$'.format(n=n_letters), each)
-                if match:
-                    found += [each]
+        for each in self.get_list_of_products():
+            match = re.search('^[a-zA-Z]{{{n}}}\\d{{2,3}}$'.format(n=n_letters), each.name)
+            if match:
+                found += [each]
         sorted(found, key=self.my_key)
         length = len(found)
         if length < 3:
@@ -63,20 +60,18 @@ class ListServer(Server):
     def __init__(self, list_of_products: List[Product] = []):
         super().__init__(list_of_products)
 
-    def my_key(self, prod: Product) -> str:
-        return prod.name
+    def get_list_of_products(self) -> List[Product]:
+        return self.list_of_products
 
 
 class MapServer(Server):
     
     def __init__(self, list_of_products: List[Product] = []):
-        self.map_of_products = {}
-        for prod in list_of_products:
-            self.map_of_products[prod.name] = prod.price
-        super().__init__(self.map_of_products)
+        self.list_of_products: Dict[str, Product] = {prod.name: prod for prod in list_of_products}
+        super().__init__(self.list_of_products)
 
-    def my_key(self, prod: dict) -> str:
-        return prod[0]
+    def get_list_of_products(self) -> List[Product]:
+        return list(self.list_of_products.values())
 
 
 class TooManyProductsFound(BaseException):
@@ -99,7 +94,6 @@ class TooFewProductsFound(BaseException):
         return f'{self.message}: {self.amount}'
 
 
-
 class Client:
     # FIXME: klasa powinna posiadać metodę inicjalizacyjną przyjmującą obiekt reprezentujący serwer
 
@@ -118,11 +112,6 @@ class Client:
             return total_price
         except TooManyProductsFound:
             return None
+        except TooFewProductsFound:
+            return None
 
-
-# server_types = (ListServer, MapServer)
-#
-# products = [Product('PP12', 1), Product('PP234', 2), Product('PP235', 1)]
-# for server_type in server_types:
-#     server = server_type(products)
-#     entries = server.get_entries(2)
